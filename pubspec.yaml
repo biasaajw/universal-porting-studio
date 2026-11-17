@@ -15,3 +15,9 @@ dependencies:
 
 flutter:
   uses-material-design: true
+
+  # Daftarkan direktori biner statis dan rootfs
+  assets:
+    - assets/native/arm64/proot
+    - assets/native/arm64/busybox
+    - assets/native/rootfs.tar.xz
