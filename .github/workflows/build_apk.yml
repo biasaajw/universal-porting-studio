@@ -30,7 +30,9 @@ jobs:
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          # Buat file keystore sementara di direktori android/app/
+          # Buat direktori android/app/ terlebih dahulu jika belum ada
+          mkdir -p android/app
+          # Buat file keystore sementara
           echo $KEYSTORE_BASE64 | base64 --decode > android/app/upload-keystore.jks
 
       - name: Generate Fresh Flutter Project & Inject Signing Config
