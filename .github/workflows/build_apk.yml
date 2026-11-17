@@ -7,14 +7,14 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04 # Menggunakan versi runner Ubuntu yang stabil
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5 # Diperbarui ke v5
+        uses: actions/checkout@v5
 
       - name: Set up Java JDK
-        uses: actions/setup-java@v5 # Diperbarui ke v5
+        uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
           java-version: '17'
@@ -26,14 +26,22 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Install Dependencies
-        run: flutter pub get
-
-      - name: Build APK Release
-        run: flutter build apk --release
+      - name: Generate Fresh Flutter Project Structure
+        run: |
+          # Buat proyek temporary bersih dengan nama 'temp_app'
+          flutter create temp_app --platforms=android --org com.porting.studio
+          
+          # Pindahkan kode dan file konfigurasi Anda ke proyek baru
+          cp -f pubspec.yaml temp_app/
+          cp -f lib/main.dart temp_app/lib/
+          
+          # Pindah masuk ke direktori proyek baru untuk proses build
+          cd temp_app
+          flutter pub get
+          flutter build apk --release
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: temp_app/build/app/outputs/flutter-apk/app-release.apk
