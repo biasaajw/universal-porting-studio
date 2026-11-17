@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Signed Android APK
 
 on:
   push:
@@ -26,22 +26,46 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Generate Fresh Flutter Project Structure
+      - name: Decode Keystore from GitHub Secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          # Buat proyek temporary bersih dengan nama 'temp_app'
+          # Buat file keystore sementara di direktori android/app/
+          echo $KEYSTORE_BASE64 | base64 --decode > android/app/upload-keystore.jks
+
+      - name: Generate Fresh Flutter Project & Inject Signing Config
+        run: |
           flutter create temp_app --platforms=android --org com.porting.studio
-          
-          # Pindahkan kode dan file konfigurasi Anda ke proyek baru
           cp -f pubspec.yaml temp_app/
           cp -f lib/main.dart temp_app/lib/
           
-          # Pindah masuk ke direktori proyek baru untuk proses build
+          # Pindahkan keystore ke proyek temporary
+          mkdir -p temp_app/android/app
+          mv android/app/upload-keystore.jks temp_app/android/app/
+          
+          # Tambahkan konfigurasi signing ke build.gradle
+          BUILD_GRADLE="temp_app/android/app/build.gradle"
+          
+          # Menyisipkan blok signingConfigs
+          sed -i '/android {/a \
+          signingConfigs {\
+              release {\
+                  storeFile file("upload-keystore.jks")\
+                  storePassword "${{ secrets.STORE_PASSWORD }}"\
+                  keyAlias "${{ secrets.KEY_ALIAS }}"\
+                  keyPassword "${{ secrets.KEY_PASSWORD }}"\
+              }\
+          }' $BUILD_GRADLE
+          
+          # Menerapkan signingConfig ke buildTypes release
+          sed -i 's/minifyEnabled false/minifyEnabled false\n            signingConfig signingConfigs.release/g' $BUILD_GRADLE
+
           cd temp_app
           flutter pub get
           flutter build apk --release
 
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload Signed APK Artifact
+        uses: actions/upload-artifact@v5
         with:
-          name: app-release-apk
+          name: app-signed-release-apk
           path: temp_app/build/app/outputs/flutter-apk/app-release.apk
